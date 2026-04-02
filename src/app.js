@@ -10,6 +10,8 @@ const authRoutes = require('./routes/authRoutes');
 const agentRoutes = require('./routes/agentRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 
+const { apiLimiter } = require('./middleware/rateLimiter');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -20,6 +22,9 @@ app.use(morgan('dev'));
 
 // Static files for demo UI
 app.use(express.static(path.join(__dirname, '../public')));
+
+// Global API Rate Limiting
+app.use('/api/', apiLimiter);
 
 // Routes
 app.use('/api/auth', authRoutes);
