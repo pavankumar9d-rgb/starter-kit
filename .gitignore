@@ -1,0 +1,6 @@
+
+.env
+.env.example
+node_modules
+src/config/database.sqlite
+.DS_Store

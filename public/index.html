@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Agent Starter Kit — Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f14;
+      --surface: #161b27;
+      --surface-2: #1e2535;
+      --border: #2a3147;
+      --accent: #6c63ff;
+      --accent-glow: rgba(108, 99, 255, 0.25);
+      --text: #e8ecf4;
+      --text-muted: #7a8499;
+      --user-bubble: #6c63ff;
+      --ai-bubble: #1e2535;
+      --radius: 14px;
+      --font: 'Inter', sans-serif;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ─── Header ─── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 28px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(22, 27, 39, 0.8);
+      backdrop-filter: blur(12px);
+      flex-shrink: 0;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, #6c63ff, #a78bfa);
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .logo-text { font-size: 16px; font-weight: 600; }
+    .logo-text span { color: var(--accent); }
+
+    #auth-status { display: flex; align-items: center; gap: 12px; }
+    #auth-status small { color: var(--text-muted); font-size: 12px; }
+    .btn {
+      padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 500;
+      cursor: pointer; border: none; transition: all 0.2s ease;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #7c74ff; box-shadow: 0 0 12px var(--accent-glow); }
+    .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--text); }
+    .btn-danger { background: transparent; color: #f87171; border: 1px solid #f87171; }
+    .btn-danger:hover { background: rgba(248, 113, 113, 0.1); }
+
+    /* ─── Main Layout ─── */
+    .main { display: flex; flex: 1; overflow: hidden; }
+
+    /* ─── Sidebar ─── */
+    .sidebar {
+      width: 280px; border-right: 1px solid var(--border);
+      background: var(--surface); padding: 20px;
+      display: flex; flex-direction: column; gap: 16px; flex-shrink: 0;
+    }
+    .sidebar h3 { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.08em; }
+    .agent-list { display: flex; flex-direction: column; gap: 8px; }
+    .agent-card {
+      padding: 12px 14px; border-radius: 10px; cursor: pointer;
+      border: 1px solid transparent; transition: all 0.2s ease;
+      background: var(--surface-2);
+    }
+    .agent-card:hover { border-color: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
+    .agent-card.active { border-color: var(--accent); background: rgba(108,99,255,0.1); }
+    .agent-card .name { font-size: 13px; font-weight: 500; }
+    .agent-card .model { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+    /* ─── Chat Area ─── */
+    .chat-area {
+      flex: 1; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .chat-header {
+      padding: 16px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .agent-avatar {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, #6c63ff, #a78bfa);
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+    .agent-info .agent-name { font-size: 15px; font-weight: 600; }
+    .agent-info .agent-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: #34d399;
+      box-shadow: 0 0 6px rgba(52, 211, 153, 0.5); margin-left: auto;
+    }
+
+    #messages {
+      flex: 1; overflow-y: auto; padding: 24px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    #messages::-webkit-scrollbar { width: 4px; }
+    #messages::-webkit-scrollbar-track { background: transparent; }
+    #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .message { display: flex; gap: 10px; max-width: 80%; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .message.user { align-self: flex-end; flex-direction: row-reverse; }
+    .message.assistant { align-self: flex-start; }
+
+    .msg-avatar {
+      width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .message.user .msg-avatar { background: var(--user-bubble); }
+    .message.assistant .msg-avatar { background: var(--surface-2); }
+
+    .msg-bubble {
+      padding: 12px 16px; border-radius: var(--radius); font-size: 14px; line-height: 1.6;
+    }
+    .message.user .msg-bubble { background: var(--user-bubble); border-radius: var(--radius) 4px var(--radius) var(--radius); }
+    .message.assistant .msg-bubble { background: var(--ai-bubble); border: 1px solid var(--border); border-radius: 4px var(--radius) var(--radius) var(--radius); }
+
+    .msg-footer { font-size: 10px; color: var(--text-muted); margin-top: 4px; padding: 0 4px; }
+    .message.user .msg-footer { text-align: right; }
+
+    /* Typing Indicator */
+    .typing-indicator { display: flex; gap: 4px; align-items: center; padding: 14px 16px; }
+    .typing-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted);
+      animation: bounce 1.4s infinite ease-in-out;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-8px); } }
+
+    /* ─── Input Area ─── */
+    .input-area {
+      padding: 16px 24px; border-top: 1px solid var(--border);
+      background: var(--surface); display: flex; gap: 10px; align-items: flex-end;
+    }
+    #message-input {
+      flex: 1; background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px 16px; color: var(--text); font-size: 14px;
+      font-family: var(--font); resize: none; min-height: 46px; max-height: 120px; line-height: 1.5;
+      outline: none; transition: border-color 0.2s;
+    }
+    #message-input:focus { border-color: var(--accent); }
+    #message-input::placeholder { color: var(--text-muted); }
+    #send-btn {
+      width: 46px; height: 46px; border-radius: 12px; background: var(--accent);
+      border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s ease; flex-shrink: 0;
+    }
+    #send-btn:hover { background: #7c74ff; box-shadow: 0 0 14px var(--accent-glow); transform: scale(1.05); }
+    #send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    /* ─── Token Stats ─── */
+    .token-bar {
+      padding: 8px 24px; border-top: 1px solid var(--border);
+      display: flex; gap: 20px; font-size: 11px; color: var(--text-muted);
+    }
+    .token-bar span strong { color: var(--text); }
+
+    /* ─── Auth Modal ─── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+    }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+      padding: 36px; width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .modal h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .modal p { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 6px; color: var(--text-muted); }
+    .form-group input {
+      width: 100%; padding: 11px 14px; background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: 10px; color: var(--text);
+      font-size: 14px; outline: none; transition: border-color 0.2s; font-family: var(--font);
+    }
+    .form-group input:focus { border-color: var(--accent); }
+    .modal-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; }
+    .modal-footer a { font-size: 13px; color: var(--accent); cursor: pointer; }
+    .error-msg { color: #f87171; font-size: 12px; margin-top: 8px; display: none; }
+
+    /* ─── Empty State ─── */
+    .empty-state {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 12px; color: var(--text-muted); text-align: center;
+    }
+    .empty-state .icon { font-size: 48px; }
+    .empty-state p { font-size: 14px; max-width: 260px; }
+  </style>
+</head>
+<body>
+
+<!-- Auth Modal -->
+<div class="modal-overlay" id="auth-modal">
+  <div class="modal">
+    <h2 id="modal-title">Welcome Back 👋</h2>
+    <p id="modal-desc">Login to chat with your AI agents</p>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="auth-username" placeholder="your_username" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="auth-password" placeholder="••••••••" />
+    </div>
+    <div class="error-msg" id="auth-error"></div>
+    <div class="modal-footer">
+      <a id="toggle-mode">Don't have an account? Register</a>
+      <button class="btn btn-primary" id="auth-submit-btn" onclick="submitAuth()">Login</button>
+    </div>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🤖</div>
+    <div class="logo-text">AI Agent <span>Starter Kit</span></div>
+  </div>
+  <div id="auth-status">
+    <small id="username-label"></small>
+    <button class="btn btn-ghost" onclick="showModal('login')">Login</button>
+    <button class="btn btn-danger" id="logout-btn" style="display:none" onclick="logout()">Logout</button>
+  </div>
+</header>
+
+<!-- Main -->
+<div class="main">
+  <div class="sidebar">
+    <h3>AI Agents</h3>
+    <div class="agent-list" id="agent-list">
+      <p style="font-size:13px;color:var(--text-muted)">Login to load agents</p>
+    </div>
+  </div>
+
+  <div class="chat-area">
+    <div class="chat-header" id="chat-header" style="display:none">
+      <div class="agent-avatar" id="chat-agent-emoji">🤖</div>
+      <div class="agent-info">
+        <div class="agent-name" id="chat-agent-name">–</div>
+        <div class="agent-desc" id="chat-agent-model">–</div>
+      </div>
+      <div class="status-dot"></div>
+    </div>
+
+    <div id="messages">
+      <div class="empty-state">
+        <div class="icon">💬</div>
+        <p>Select an agent from the sidebar to start chatting</p>
+      </div>
+    </div>
+
+    <div class="token-bar" id="token-bar" style="display:none">
+      <span>Last Response — Prompt: <strong id="t-prompt">–</strong></span>
+      <span>Completion: <strong id="t-completion">–</strong></span>
+      <span>Total: <strong id="t-total">–</strong></span>
+    </div>
+
+    <div class="input-area">
+      <textarea id="message-input" rows="1" placeholder="Type a message… (Enter to send)"></textarea>
+      <button id="send-btn" onclick="sendMessage()" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = '';  // Same origin
+  let token = localStorage.getItem('token') || null;
+  let currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+  let currentAgent = null;
+  let isLoginMode = true;
+
+  const agentEmojis = { 'Customer Support Agent': '🎧', 'Sales Agent': '💼', 'Study Assistant': '📚' };
+
+  // ─── Auth ───
+  function showModal(mode) {
+    isLoginMode = mode === 'login';
+    document.getElementById('auth-modal').style.display = 'flex';
+    document.getElementById('modal-title').textContent = isLoginMode ? 'Welcome Back 👋' : 'Create Account';
+    document.getElementById('modal-desc').textContent = isLoginMode ? 'Login to chat with your AI agents' : 'Register to get started';
+    document.getElementById('auth-submit-btn').textContent = isLoginMode ? 'Login' : 'Register';
+    document.getElementById('toggle-mode').textContent = isLoginMode ? "Don't have an account? Register" : 'Already have an account? Login';
+    document.getElementById('auth-error').style.display = 'none';
+  }
+
+  document.getElementById('toggle-mode').addEventListener('click', () => {
+    isLoginMode = !isLoginMode;
+    showModal(isLoginMode ? 'login' : 'register');
+  });
+
+  async function submitAuth() {
+    const username = document.getElementById('auth-username').value.trim();
+    const password = document.getElementById('auth-password').value.trim();
+    if (!username || !password) return showError('Please fill in all fields');
+
+    const endpoint = isLoginMode ? '/api/auth/login' : '/api/auth/register';
+    try {
+      const res = await fetch(API + endpoint, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (!res.ok) return showError(data.error || 'Something went wrong');
+
+      token = data.token;
+      currentUser = data.user || { username };
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(currentUser));
+
+      document.getElementById('auth-modal').style.display = 'none';
+      updateAuthUI();
+      loadAgents();
+    } catch (e) { showError('Connection error. Is the server running?'); }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('auth-error');
+    el.textContent = msg; el.style.display = 'block';
+  }
+
+  function logout() {
+    token = null; currentUser = null; currentAgent = null;
+    localStorage.removeItem('token'); localStorage.removeItem('user');
+    updateAuthUI();
+    document.getElementById('agent-list').innerHTML = '<p style="font-size:13px;color:var(--text-muted)">Login to load agents</p>';
+    document.getElementById('messages').innerHTML = '<div class="empty-state"><div class="icon">💬</div><p>Select an agent from the sidebar to start chatting</p></div>';
+    document.getElementById('chat-header').style.display = 'none';
+    document.getElementById('token-bar').style.display = 'none';
+    document.getElementById('send-btn').disabled = true;
+  }
+
+  function updateAuthUI() {
+    const isAuthed = !!token;
+    document.querySelector('#auth-status .btn-ghost').style.display = isAuthed ? 'none' : '';
+    document.getElementById('logout-btn').style.display = isAuthed ? '' : 'none';
+    document.getElementById('username-label').textContent = isAuthed ? `👤 ${currentUser?.username || ''}` : '';
+  }
+
+  // ─── Agents ───
+  async function loadAgents() {
+    try {
+      const res = await fetch(API + '/api/agents', { headers: { Authorization: `Bearer ${token}` } });
+      const agents = await res.json();
+      const list = document.getElementById('agent-list');
+      if (!agents.length) { list.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">No agents found. Run the seed script.</p>'; return; }
+      list.innerHTML = agents.map(a => `
+        <div class="agent-card" onclick="selectAgent(${a.id}, '${a.name.replace(/'/g,"\\'")}', '${a.model}')" id="agent-${a.id}">
+          <div class="name">${agentEmojis[a.name] || '🤖'} ${a.name}</div>
+          <div class="model">${a.model}</div>
+        </div>
+      `).join('');
+    } catch (e) { console.error(e); }
+  }
+
+  function selectAgent(id, name, model) {
+    currentAgent = id;
+    document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('active'));
+    document.getElementById(`agent-${id}`).classList.add('active');
+    document.getElementById('chat-agent-name').textContent = name;
+    document.getElementById('chat-agent-model').textContent = model;
+    document.getElementById('chat-agent-emoji').textContent = agentEmojis[name] || '🤖';
+    document.getElementById('chat-header').style.display = 'flex';
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('messages').innerHTML = '';
+    addSystemMessage(`You are now chatting with the <strong>${name}</strong>. Say hello!`);
+  }
+
+  // ─── Chat ───
+  function addSystemMessage(html) {
+    const el = document.createElement('div');
+    el.style.cssText = 'text-align:center;font-size:12px;color:var(--text-muted);padding:6px;';
+    el.innerHTML = html;
+    document.getElementById('messages').appendChild(el);
+    scrollToBottom();
+  }
+
+  function addMessage(role, content) {
+    const isUser = role === 'user';
+    const msg = document.createElement('div');
+    msg.className = `message ${role}`;
+    msg.innerHTML = `
+      <div class="msg-avatar">${isUser ? '🧑' : (agentEmojis[document.getElementById('chat-agent-name').textContent] || '🤖')}</div>
+      <div>
+        <div class="msg-bubble">${escapeHtml(content)}</div>
+        <div class="msg-footer">${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+    `;
+    document.getElementById('messages').appendChild(msg);
+    scrollToBottom();
+    return msg;
+  }
+
+  function addTypingIndicator() {
+    const el = document.createElement('div');
+    el.className = 'message assistant';
+    el.id = 'typing';
+    el.innerHTML = `
+      <div class="msg-avatar">🤖</div>
+      <div class="msg-bubble ai-bubble typing-indicator">
+        <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+      </div>`;
+    document.getElementById('messages').appendChild(el);
+    scrollToBottom();
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('message-input');
+    const message = input.value.trim();
+    if (!message || !currentAgent) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    document.getElementById('send-btn').disabled = true;
+
+    addMessage('user', message);
+    addTypingIndicator();
+
+    try {
+      const res = await fetch(API + '/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ agent_id: currentAgent, message })
+      });
+      const data = await res.json();
+      document.getElementById('typing')?.remove();
+
+      if (!res.ok) { addMessage('assistant', `Error: ${data.error}`); }
+      else {
+        addMessage('assistant', data.content);
+        if (data.usage) {
+          document.getElementById('token-bar').style.display = 'flex';
+          document.getElementById('t-prompt').textContent = data.usage.prompt_tokens;
+          document.getElementById('t-completion').textContent = data.usage.completion_tokens;
+          document.getElementById('t-total').textContent = data.usage.total_tokens;
+        }
+      }
+    } catch (e) {
+      document.getElementById('typing')?.remove();
+      addMessage('assistant', 'Connection error. Is the server running?');
+    }
+    document.getElementById('send-btn').disabled = false;
+  }
+
+  // ─── Utils ───
+  function scrollToBottom() {
+    const m = document.getElementById('messages');
+    m.scrollTop = m.scrollHeight;
+  }
+
+  function escapeHtml(text) {
+    return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  }
+
+  // Enter to send
+  document.getElementById('message-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+
+  // Auto-resize textarea
+  document.getElementById('message-input').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
+  });
+
+  // ─── Init ───
+  if (token) {
+    document.getElementById('auth-modal').style.display = 'none';
+    updateAuthUI();
+    loadAgents();
+  } else {
+    showModal('login');
+  }
+
+  // Allow Enter on auth form
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && document.getElementById('auth-modal').style.display !== 'none') submitAuth();
+  });
+</script>
+</body>
+</html>
