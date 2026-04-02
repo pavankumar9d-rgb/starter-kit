@@ -133,6 +133,7 @@ curl -X POST http://localhost:5000/api/auth/login \
 > **Save the `token` from the response — you'll use it as `Bearer <token>` for all protected routes.**
 
 ---
+🔐 Your API keys are never stored or shared. This project is fully secure and runs locally.
 
 ### Agents
 
